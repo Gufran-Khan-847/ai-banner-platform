@@ -25,7 +25,6 @@
     "@radix-ui/react-toast": "^1.2.2",
     "aws-sdk": "^2.1691.0",
     "axios": "^1.7.7",
-    "canvas": "^2.11.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.5",
@@ -38,6 +37,9 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^10.0.0"
+  },
+  "optionalDependencies": {
+    "canvas": "^2.11.2"
   },
   "devDependencies": {
     "@types/node": "^20",
