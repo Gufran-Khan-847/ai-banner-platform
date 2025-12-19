@@ -8,15 +8,15 @@ import dynamic from "next/dynamic";
 import Chatbot from "@/components/chatbot";
 import { Button } from "@/components/ui/button";
 
-// Dynamic import to avoid server-side require of `canvas` via konva
+// Dynamic import: editor will only exist in the browser bundle
 const FilerobotImageEditor = dynamic(
   () => import("react-filerobot-image-editor"),
   { ssr: false }
 );
 
-// Types from react-filerobot-image-editor
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { TABS, TOOLS } = require("react-filerobot-image-editor");
+// Types for state only
+type EditorTabs = typeof import("react-filerobot-image-editor")["TABS"];
+type EditorTools = typeof import("react-filerobot-image-editor")["TOOLS"];
 
 export default function EditPage() {
   const searchParams = useSearchParams();
@@ -24,6 +24,18 @@ export default function EditPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<1 | 2>(1);
+  const [TABS, setTABS] = useState<EditorTabs | null>(null);
+  const [TOOLS, setTOOLS] = useState<EditorTools | null>(null);
+
+  // Load TABS and TOOLS only in the browser
+  useEffect(() => {
+    const loadEditorConstants = async () => {
+      const mod = await import("react-filerobot-image-editor");
+      setTABS(mod.TABS);
+      setTOOLS(mod.TOOLS);
+    };
+    loadEditorConstants();
+  }, []);
 
   const getImageSavedPath = async (url: string) => {
     const response = await fetch("/api/s3", {
@@ -37,8 +49,6 @@ export default function EditPage() {
     const data = await response.json();
     const path: string = data.filePath;
     console.log(data);
-
-    // remove `s3://` or similar prefix if present
     setImageUrl(decodeURIComponent(path.substring(6)));
   };
 
@@ -49,7 +59,6 @@ export default function EditPage() {
         await getImageSavedPath(image);
       }
     };
-
     getImage();
   }, [searchParams]);
 
@@ -67,20 +76,15 @@ export default function EditPage() {
   const openModal = () => {
     setIsModalOpen(true);
     setCurrentImage(1);
-
-    setTimeout(() => {
-      setCurrentImage(2);
-    }, 8000);
+    setTimeout(() => setCurrentImage(2), 8000);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  const closeModal = () => setIsModalOpen(false);
 
-  if (!imageUrl) {
+  if (!imageUrl || !TABS || !TOOLS) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-lg font-medium">Loading...</p>
+        <p className="text-lg font-medium">Loading editor...</p>
       </div>
     );
   }
@@ -98,20 +102,16 @@ export default function EditPage() {
       <main className="flex flex-1 flex-col px-4 py-4">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold">Edit Banner</h1>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={openModal}>
-              Replace with original product
-            </Button>
-          </div>
+          <Button variant="outline" onClick={openModal}>
+            Replace with original product
+          </Button>
         </div>
 
         <div className="flex-1 overflow-hidden rounded-md border">
           <FilerobotImageEditor
             source={imageUrl}
             onSave={handleSave}
-            annotationsCommon={{
-              fill: "#ff0000",
-            }}
+            annotationsCommon={{ fill: "#ff0000" }}
             Text={{ text: "Text here" }}
             Rotate={{ angle: 90, componentType: "slider" }}
             Crop={{
