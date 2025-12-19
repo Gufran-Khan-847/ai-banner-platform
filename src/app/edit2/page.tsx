@@ -3,20 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
 
 import Chatbot from "@/components/chatbot";
 import { Button } from "@/components/ui/button";
-
-// Dynamic import: editor will only exist in the browser bundle
-const FilerobotImageEditor = dynamic(
-  () => import("react-filerobot-image-editor"),
-  { ssr: false }
-);
-
-// Types for state only
-type EditorTabs = typeof import("react-filerobot-image-editor")["TABS"];
-type EditorTools = typeof import("react-filerobot-image-editor")["TOOLS"];
 
 export default function EditPage() {
   const searchParams = useSearchParams();
@@ -24,18 +13,6 @@ export default function EditPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<1 | 2>(1);
-  const [TABS, setTABS] = useState<EditorTabs | null>(null);
-  const [TOOLS, setTOOLS] = useState<EditorTools | null>(null);
-
-  // Load TABS and TOOLS only in the browser
-  useEffect(() => {
-    const loadEditorConstants = async () => {
-      const mod = await import("react-filerobot-image-editor");
-      setTABS(mod.TABS);
-      setTOOLS(mod.TOOLS);
-    };
-    loadEditorConstants();
-  }, []);
 
   const getImageSavedPath = async (url: string) => {
     const response = await fetch("/api/s3", {
@@ -62,17 +39,6 @@ export default function EditPage() {
     getImage();
   }, [searchParams]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleSave = (editedImageObject: any) => {
-    if (editedImageObject && editedImageObject.imageBase64) {
-      const link = document.createElement("a");
-      link.href = editedImageObject.imageBase64;
-      link.download = "edited-image.png";
-      link.click();
-      window.close();
-    }
-  };
-
   const openModal = () => {
     setIsModalOpen(true);
     setCurrentImage(1);
@@ -81,10 +47,10 @@ export default function EditPage() {
 
   const closeModal = () => setIsModalOpen(false);
 
-  if (!imageUrl || !TABS || !TOOLS) {
+  if (!imageUrl) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-lg font-medium">Loading editor...</p>
+        <p className="text-lg font-medium">Loading banner...</p>
       </div>
     );
   }
@@ -107,58 +73,13 @@ export default function EditPage() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-hidden rounded-md border">
-          <FilerobotImageEditor
-            source={imageUrl}
-            onSave={handleSave}
-            annotationsCommon={{ fill: "#ff0000" }}
-            Text={{ text: "Text here" }}
-            Rotate={{ angle: 90, componentType: "slider" }}
-            Crop={{
-              presetsItems: [
-                {
-                  titleKey: "classicTv",
-                  descriptionKey: "4:3",
-                  ratio: 4 / 3,
-                  icon: "crop-4-3",
-                },
-                {
-                  titleKey: "widescreenTv",
-                  descriptionKey: "16:9",
-                  ratio: 16 / 9,
-                  icon: "crop-16-9",
-                },
-              ],
-              presetsFolders: [
-                {
-                  titleKey: "socialMedia",
-                  groups: [
-                    {
-                      titleKey: "facebook",
-                      items: [
-                        {
-                          titleKey: "profile",
-                          width: 180,
-                          height: 180,
-                          descriptionKey: "fbProfileSize",
-                        },
-                        {
-                          titleKey: "coverPhoto",
-                          width: 820,
-                          height: 312,
-                          descriptionKey: "fbCoverPhotoSize",
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            }}
-            tabsIds={[TABS.ADJUST, TABS.ANNOTATE, TABS.WATERMARK]}
-            defaultTabId={TABS.ANNOTATE}
-            defaultToolId={TOOLS.TEXT}
-            savingPixelRatio={0}
-            previewPixelRatio={0}
+        <div className="flex flex-1 items-center justify-center rounded-md border bg-gray-50">
+          <Image
+            src={imageUrl}
+            alt="Banner"
+            width={800}
+            height={450}
+            className="max-h-[70vh] w-auto rounded-md object-contain"
           />
         </div>
 
